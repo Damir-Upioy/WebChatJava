@@ -1,6 +1,7 @@
 package org.example.main;
 
 import java.sql.*;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -53,5 +54,17 @@ public class DataBase {
             throw new RuntimeException(e);
         }
         return user;
+    }
+
+    public void writeNewMessage(Message message){
+        try(Connection conn = DriverManager.getConnection(URL,USER,PASS);
+            Statement statement = conn.createStatement()){
+
+            String date = new SimpleDateFormat("dd-MM-yyyy hh:mm:ss").format(message.getDate());
+            String sql = "insert info messages (text, token, date) values ('"+message.getText()+"','"+message.getToken()+"','"+date+"')";
+            statement.execute(sql);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

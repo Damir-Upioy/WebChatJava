@@ -7,10 +7,7 @@ import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
 public class MyWebSocket extends WebSocketServer {
     private static final int PORT = 7777;
@@ -18,6 +15,7 @@ public class MyWebSocket extends WebSocketServer {
     DataBase db;
     Set<WebSocket> cons;
     ArrayList<User> users;
+    ArrayList<Message> messages = new ArrayList<>();
 
     public MyWebSocket() {
         super(new InetSocketAddress(PORT));
@@ -80,17 +78,47 @@ public class MyWebSocket extends WebSocketServer {
                 answer.put("message", "User invalid");
             }
             webSocket.send(answer.toString());
-        }else if (type.equals("token.augh")){
+        } else if (type.equals("token.augh")) {
             String token = obj.getString("token");
             User user = getUserByToken(token);
-            answer.put("type","token_augh");
+            answer.put("type", "token_augh");
             answer.put("name", user.getLogin());
 
             webSocket.send(answer.toString());
+        } else if (type.equals("chat_message")) {
+            String token = obj.getString("token");
+            String msg = obj.getString("text");
+            long label = obj.getLong("label");
+
+            User user = getUserByToken(token);
+            if (user == null) return;
+
+            Message mes = new Message(token, msg, new Date());
+            messages.add(mes);
+            db.writeNewMessage(mes);
+
+            JSONObject sendMessage = new JSONObject();
+            sendMessage.put("type", "chat message");
+            sendMessage.put("isMine", "false");
+            sendMessage.put("text", msg);
+            sendMessage.put("sender", user.getLogin());
+
+            for (WebSocket socket : cons) {
+                if (!socket.equals(webSocket)) {
+                    socket.send(sendMessage.toString());
+                }
+
+                answer.put("type", "sending result");
+                answer.put("result", "success");
+                answer.put("label", Long.toString(label));
+                webSocket.send(answer.toString());
+            }
+            answer.put("type", "sending result");
+            answer.put("result", "success");
+            answer.put("label", Long.toString(label));
+            webSocket.send(answer.toString());
+
         }
-
-
-
     }
 
     @Override
